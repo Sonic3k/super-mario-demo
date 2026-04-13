@@ -1,254 +1,420 @@
 // ============================================
-// Super Mario Demo - Sprite Rendering System
+// Super Mario Demo - Sprite Generator
 // ============================================
-// All sprites drawn pixel-by-pixel for authentic NES look
+// Generates all pixel art textures procedurally for Phaser
 
-class SpriteRenderer {
-  constructor() {
-    this.cache = new Map();
-    this.tempCanvas = document.createElement('canvas');
-    this.tempCtx = this.tempCanvas.getContext('2d');
+class SpriteGenerator {
+  constructor(scene) {
+    this.scene = scene;
   }
 
-  // Cache a sprite at given scale
-  getCached(key, width, height, drawFn) {
-    if (this.cache.has(key)) return this.cache.get(key);
-    
+  generateAll() {
+    this.generateTileset();
+    this.generateMarioSmall();
+    this.generateMarioBig();
+    this.generateGoomba();
+    this.generateCoin();
+    this.generateMushroom();
+    this.generateFlag();
+  }
+
+  // Utility: draw pixel grid onto a canvas context
+  drawPixels(ctx, grid, colorMap, ox = 0, oy = 0) {
+    for (let y = 0; y < grid.length; y++) {
+      const row = grid[y];
+      for (let x = 0; x < row.length; x++) {
+        const c = row[x];
+        if (c === '.' || c === ' ') continue;
+        const color = colorMap[c];
+        if (!color) continue;
+        ctx.fillStyle = color;
+        ctx.fillRect(ox + x, oy + y, 1, 1);
+      }
+    }
+  }
+
+  // ---- TILESET ----
+  generateTileset() {
+    // 16x16 tiles, 14 tiles in a row
+    const tileCount = 14;
+    const ts = 16;
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = ts * tileCount;
+    canvas.height = ts;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    drawFn(ctx);
-    this.cache.set(key, canvas);
-    return canvas;
+
+    // 0: Ground
+    this.drawGroundTile(ctx, 0, 0);
+    // 1: Brick
+    this.drawBrickTile(ctx, ts, 0);
+    // 2: Question block
+    this.drawQuestionBlock(ctx, ts * 2, 0);
+    // 3: Empty question block
+    this.drawEmptyBlock(ctx, ts * 3, 0);
+    // 4: Solid block
+    this.drawGroundTile(ctx, ts * 4, 0);
+    // 5: Pipe top-left
+    this.drawPipePart(ctx, ts * 5, 0, 'tl');
+    // 6: Pipe top-right
+    this.drawPipePart(ctx, ts * 6, 0, 'tr');
+    // 7: Pipe body-left
+    this.drawPipePart(ctx, ts * 7, 0, 'bl');
+    // 8: Pipe body-right
+    this.drawPipePart(ctx, ts * 8, 0, 'br');
+    // 9: Flag pole
+    this.drawFlagPole(ctx, ts * 9, 0);
+    // 10: Flag top (ball)
+    this.drawFlagTop(ctx, ts * 10, 0);
+    // 11: Castle block
+    this.drawCastleBlock(ctx, ts * 11, 0);
+    // 12: Castle top
+    this.drawCastleTop(ctx, ts * 12, 0);
+    // 13: Castle door
+    this.drawCastleDoor(ctx, ts * 13, 0);
+
+    this.scene.textures.addCanvas('tileset', canvas);
   }
 
-  // Draw a pixel grid (each cell = 1 pixel at base, scaled by SCALE)
-  drawPixelGrid(ctx, grid, colorMap, offsetX = 0, offsetY = 0) {
-    for (let y = 0; y < grid.length; y++) {
-      for (let x = 0; x < grid[y].length; x++) {
-        const colorKey = grid[y][x];
-        if (colorKey === 0 || colorKey === ' ' || colorKey === '.') continue;
-        ctx.fillStyle = colorMap[colorKey];
-        ctx.fillRect(offsetX + x, offsetY + y, 1, 1);
-      }
+  drawGroundTile(ctx, x, y) {
+    ctx.fillStyle = '#C84C0C';
+    ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#A03800';
+    ctx.fillRect(x, y, 16, 1);
+    ctx.fillRect(x, y, 1, 16);
+    ctx.fillStyle = '#E8A060';
+    ctx.fillRect(x + 1, y + 1, 6, 6);
+    ctx.fillRect(x + 9, y + 9, 6, 6);
+    ctx.fillStyle = '#A03800';
+    ctx.fillRect(x + 1, y + 7, 7, 1);
+    ctx.fillRect(x + 7, y + 1, 1, 7);
+    ctx.fillRect(x + 9, y + 15, 7, 1);
+    ctx.fillRect(x + 15, y + 9, 1, 7);
+  }
+
+  drawBrickTile(ctx, x, y) {
+    ctx.fillStyle = '#C84C0C';
+    ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#6B3400';
+    ctx.fillRect(x, y + 3, 16, 1);
+    ctx.fillRect(x, y + 7, 16, 1);
+    ctx.fillRect(x, y + 11, 16, 1);
+    ctx.fillRect(x, y + 15, 16, 1);
+    ctx.fillRect(x + 7, y, 1, 4);
+    ctx.fillRect(x + 3, y + 4, 1, 4);
+    ctx.fillRect(x + 11, y + 4, 1, 4);
+    ctx.fillRect(x + 7, y + 8, 1, 4);
+    ctx.fillRect(x + 3, y + 12, 1, 4);
+    ctx.fillRect(x + 11, y + 12, 1, 4);
+    ctx.fillStyle = '#E8A060';
+    ctx.fillRect(x, y, 7, 1);
+    ctx.fillRect(x, y, 1, 3);
+    ctx.fillRect(x + 8, y + 4, 3, 1);
+    ctx.fillRect(x + 8, y + 4, 1, 3);
+    ctx.fillRect(x, y + 8, 7, 1);
+    ctx.fillRect(x, y + 8, 1, 3);
+    ctx.fillRect(x + 8, y + 12, 3, 1);
+    ctx.fillRect(x + 8, y + 12, 1, 3);
+  }
+
+  drawQuestionBlock(ctx, x, y) {
+    ctx.fillStyle = '#F8B800';
+    ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#6B3400';
+    ctx.fillRect(x, y, 16, 1);
+    ctx.fillRect(x, y + 15, 16, 1);
+    ctx.fillRect(x, y, 1, 16);
+    ctx.fillRect(x + 15, y, 1, 16);
+    ctx.fillStyle = '#C88400';
+    ctx.fillRect(x + 1, y + 14, 14, 1);
+    ctx.fillRect(x + 14, y + 1, 1, 14);
+    ctx.fillStyle = '#F8D878';
+    ctx.fillRect(x + 1, y + 1, 14, 1);
+    ctx.fillRect(x + 1, y + 1, 1, 14);
+    // Question mark
+    ctx.fillStyle = '#6B3400';
+    ctx.fillRect(x + 5, y + 3, 6, 2);
+    ctx.fillRect(x + 9, y + 5, 3, 2);
+    ctx.fillRect(x + 7, y + 7, 3, 2);
+    ctx.fillRect(x + 7, y + 9, 2, 2);
+    ctx.fillRect(x + 7, y + 12, 2, 2);
+  }
+
+  drawEmptyBlock(ctx, x, y) {
+    ctx.fillStyle = '#C84C0C';
+    ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#A03800';
+    ctx.fillRect(x, y + 15, 16, 1);
+    ctx.fillRect(x + 15, y, 1, 16);
+    ctx.fillStyle = '#E8A060';
+    ctx.fillRect(x, y, 16, 1);
+    ctx.fillRect(x, y, 1, 16);
+  }
+
+  drawPipePart(ctx, x, y, part) {
+    switch (part) {
+      case 'tl':
+        ctx.fillStyle = '#005000';
+        ctx.fillRect(x, y, 16, 16);
+        ctx.fillStyle = '#00A800';
+        ctx.fillRect(x + 1, y, 14, 16);
+        ctx.fillStyle = '#38E038';
+        ctx.fillRect(x + 2, y, 4, 16);
+        ctx.fillStyle = '#007800';
+        ctx.fillRect(x + 12, y, 3, 16);
+        break;
+      case 'tr':
+        ctx.fillStyle = '#005000';
+        ctx.fillRect(x, y, 16, 16);
+        ctx.fillStyle = '#00A800';
+        ctx.fillRect(x + 1, y, 14, 16);
+        ctx.fillStyle = '#38E038';
+        ctx.fillRect(x + 1, y, 3, 16);
+        ctx.fillStyle = '#007800';
+        ctx.fillRect(x + 11, y, 4, 16);
+        break;
+      case 'bl':
+        ctx.fillStyle = '#00A800';
+        ctx.fillRect(x + 2, y, 14, 16);
+        ctx.fillStyle = '#005000';
+        ctx.fillRect(x + 2, y, 1, 16);
+        ctx.fillStyle = '#38E038';
+        ctx.fillRect(x + 4, y, 3, 16);
+        ctx.fillStyle = '#007800';
+        ctx.fillRect(x + 13, y, 2, 16);
+        break;
+      case 'br':
+        ctx.fillStyle = '#00A800';
+        ctx.fillRect(x, y, 14, 16);
+        ctx.fillStyle = '#005000';
+        ctx.fillRect(x + 13, y, 1, 16);
+        ctx.fillStyle = '#38E038';
+        ctx.fillRect(x + 1, y, 2, 16);
+        ctx.fillStyle = '#007800';
+        ctx.fillRect(x + 10, y, 3, 16);
+        break;
     }
   }
 
-  // ---- MARIO SPRITES ----
-  
-  drawMarioSmallStand(ctx, facing = 1) {
-    // 12x16 pixel Mario standing
-    const grid = [
-      '...RRRRR...',
-      '..RRRRRRR..',
-      '..BBBSSBS..',
-      '.BSBSSSBS..',
-      '.BSBBSSSBBB',
-      '..BSSSBBB..',
-      '...SSSS....',
-      '..RRBRRR...',
-      '.RRRBRRRR..',
-      'RRRRBBRRR..',
-      'SSRBGBGRS..',
-      'SSSBBBBSSS.',
-      'SSBBBBBBSS.',
-      '..BBB.BBB..',
-      '.BBB...BBB.',
-      'BBB.....BBB',
-    ];
-    const colors = {
-      'R': COLORS.MARIO_RED,
-      'B': COLORS.MARIO_BROWN,
-      'S': COLORS.MARIO_SKIN,
-      'G': COLORS.GROUND_BROWN,
-      '.': null,
-    };
-    
-    if (facing === -1) {
-      // Flip horizontally
-      const flipped = grid.map(row => row.split('').reverse().join(''));
-      this.drawPixelGrid(ctx, flipped.map(r => r.split('')), colors);
-    } else {
-      this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-    }
+  drawFlagPole(ctx, x, y) {
+    ctx.fillStyle = '#888888';
+    ctx.fillRect(x + 7, y, 2, 16);
   }
 
-  drawMarioSmallWalk(ctx, frame, facing = 1) {
-    const frames = [
-      [ // Walk frame 1
-        '...RRRRR...',
-        '..RRRRRRR..',
-        '..BBBSSBS..',
-        '.BSBSSSBS..',
-        '.BSBBSSSBBB',
-        '..BSSSBBB..',
-        '...RRRR....',
-        '..RRRBRRR..',
-        '.RRRRBRR...',
-        '.RRRBBR....',
-        '..SBBGB....',
-        '..SBBBBS...',
-        '..BBBBBBS..',
-        '...BBB.BB..',
-        '....BBB....',
-        '....BBB....',
-      ],
-      [ // Walk frame 2
-        '...RRRRR...',
-        '..RRRRRRR..',
-        '..BBBSSBS..',
-        '.BSBSSSBS..',
-        '.BSBBSSSBBB',
-        '..BSSSBBB..',
-        '...SSSS....',
-        '..BBRBBR...',
-        '.BRRRBRRR..',
-        '.BRRRBBRR..',
-        '.BBBBBB....',
-        '...BBBBB...',
-        '...BBBB....',
-        '..BBB.B....',
-        '..BBB......',
-        '...BB......',
-      ],
-      [ // Walk frame 3
-        '............',
-        '...RRRRR...',
-        '..RRRRRRR..',
-        '..BBBSSBS..',
-        '.BSBSSSBS..',
-        '.BSBBSSSBBB',
-        '..BSSSBBB..',
-        '..RRRRRS...',
-        '.RRRRRRSSS.',
-        '.RRRRBBBBS.',
-        '.RSSBRBBS..',
-        '..SSBRRB...',
-        '..BBBRBB...',
-        '.BBB..BBB..',
-        '.BBB.......',
-        '............',
-      ],
-    ];
-    
-    const grid = frames[frame % 3];
-    const colors = {
-      'R': COLORS.MARIO_RED,
-      'B': COLORS.MARIO_BROWN,
-      'S': COLORS.MARIO_SKIN,
-      'G': COLORS.GROUND_BROWN,
-      '.': null,
-    };
-    
-    if (facing === -1) {
-      const flipped = grid.map(row => row.split('').reverse().join(''));
-      this.drawPixelGrid(ctx, flipped.map(r => r.split('')), colors);
-    } else {
-      this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-    }
+  drawFlagTop(ctx, x, y) {
+    ctx.fillStyle = '#888888';
+    ctx.fillRect(x + 7, y + 4, 2, 12);
+    ctx.fillRect(x + 6, y, 4, 4);
   }
 
-  drawMarioSmallJump(ctx, facing = 1) {
-    const grid = [
-      '.....BBBBB.',
-      '...RRRRRRB.',
-      '..RRRRRRR..',
-      '..BBBSSBS..',
-      '.BSBSSSBS..',
-      '.BSBBSSSBBB',
-      '..BSSSBBB..',
-      '..RRRRRR...',
-      'RRRRRRBRRR.',
-      'SSRRRBBRRRR',
-      'SSSRBBGBRR.',
-      '.SSBBBBBB..',
-      '..BBBBBBB..',
-      '..BBB..BBB.',
-      '.BBB.......',
-      '.BB........',
-    ];
-    const colors = {
-      'R': COLORS.MARIO_RED,
-      'B': COLORS.MARIO_BROWN,
-      'S': COLORS.MARIO_SKIN,
-      'G': COLORS.GROUND_BROWN,
-      '.': null,
-    };
-    
-    if (facing === -1) {
-      const flipped = grid.map(row => row.split('').reverse().join(''));
-      this.drawPixelGrid(ctx, flipped.map(r => r.split('')), colors);
-    } else {
-      this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-    }
+  drawCastleBlock(ctx, x, y) {
+    ctx.fillStyle = '#A0A0A0';
+    ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#686868';
+    ctx.fillRect(x, y, 16, 1);
+    ctx.fillRect(x, y, 1, 16);
+    ctx.fillRect(x + 7, y, 1, 16);
+    ctx.fillRect(x, y + 7, 16, 1);
+    ctx.fillStyle = '#D0D0D0';
+    ctx.fillRect(x + 1, y + 1, 6, 6);
   }
 
-  drawMarioDead(ctx) {
-    const grid = [
-      '...RRRRR...',
-      '..RRRRRRR..',
-      '..BBBSSBS..',
-      '.BSBSSSBS..',
-      '.BSBBSSSBBB',
-      '..BSSSBBB..',
-      '...SSSS....',
-      'S.RRRRRR.S.',
-      'SSRRRRRRRSS',
-      'SRRRRBBRRRS',
-      '.SRRBBBRRS.',
-      '..BBBBBB...',
-      '..BBBBBB...',
-      '.BBBBBBBB..',
-      '.BBB..BBB..',
-      'BBB....BBB.',
-    ];
-    const colors = {
-      'R': COLORS.MARIO_RED,
-      'B': COLORS.MARIO_BROWN,
-      'S': COLORS.MARIO_SKIN,
-      'G': COLORS.GROUND_BROWN,
-      '.': null,
-    };
-    this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
+  drawCastleTop(ctx, x, y) {
+    ctx.fillStyle = '#A0A0A0';
+    ctx.fillRect(x, y + 4, 16, 12);
+    // Battlements
+    ctx.fillRect(x, y, 4, 4);
+    ctx.fillRect(x + 6, y, 4, 4);
+    ctx.fillRect(x + 12, y, 4, 4);
+    ctx.fillStyle = '#686868';
+    ctx.fillRect(x, y + 4, 16, 1);
   }
 
-  // Get cached Mario sprite
-  getMarioSprite(state, animFrame, facing, marioState) {
-    const key = `mario_${state}_${animFrame}_${facing}_${marioState}`;
-    const s = CONFIG.TILE_SIZE;
-    const w = 12;
-    const h = 16;
-    
-    return this.getCached(key, w, h, (ctx) => {
-      // For now, all states use small mario sprites
-      // Big/Fire mario would need 12x32 sprites
-      switch (state) {
-        case 'stand':
-          this.drawMarioSmallStand(ctx, facing);
-          break;
-        case 'walk':
-          this.drawMarioSmallWalk(ctx, animFrame, facing);
-          break;
-        case 'jump':
-          this.drawMarioSmallJump(ctx, facing);
-          break;
-        case 'dead':
-          this.drawMarioDead(ctx);
-          break;
-        case 'skid':
-          this.drawMarioSmallStand(ctx, -facing); // Face opposite direction when skidding
-          break;
-        default:
-          this.drawMarioSmallStand(ctx, facing);
-      }
+  drawCastleDoor(ctx, x, y) {
+    ctx.fillStyle = '#A0A0A0';
+    ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 3, y + 2, 10, 14);
+    ctx.fillStyle = '#A0A0A0';
+    // Arch top
+    ctx.fillRect(x + 3, y + 2, 2, 2);
+    ctx.fillRect(x + 11, y + 2, 2, 2);
+  }
+
+  // ---- MARIO SMALL (spritesheet: 4 frames, 16x16 each) ----
+  generateMarioSmall() {
+    const w = 16, h = 16, frames = 7; // stand, walk1, walk2, walk3, jump, skid, dead
+    const canvas = document.createElement('canvas');
+    canvas.width = w * frames;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const C = {
+      'R': '#B81C1C', 'B': '#6B3400', 'S': '#F0A060',
+      'G': '#C84C0C', '.': null,
+    };
+
+    // Frame 0: Stand
+    const stand = [
+      '....RRRRR...',
+      '...RRRRRRR..',
+      '...BBBSSBS..',
+      '..BSBSSSBS..',
+      '..BSBBSSSBBB',
+      '...BSSSBBB..',
+      '....SSSS....',
+      '..RRBRRR....',
+      '.RRRBRRRR...',
+      'RRRRBBRRR...',
+      'SSRBGBGRS...',
+      'SSSBBBBSSS..',
+      'SSBBBBBBSS..',
+      '..BBB.BBB...',
+      '.BBB...BBB..',
+      'BBB.....BBB.',
+    ];
+    this.drawPixels(ctx, stand, C, 2, 0);
+
+    // Frame 1-3: Walk
+    const walk1 = [
+      '....RRRRR...',
+      '...RRRRRRR..',
+      '...BBBSSBS..',
+      '..BSBSSSBS..',
+      '..BSBBSSSBBB',
+      '...BSSSBBB..',
+      '....RRRR....',
+      '..RRRBRRR...',
+      '.RRRRBRR....',
+      '.RRRBBR.....',
+      '..SBBGB.....',
+      '..SBBBBS....',
+      '..BBBBBBS...',
+      '...BBB.BB...',
+      '....BBB.....',
+      '....BBB.....',
+    ];
+    this.drawPixels(ctx, walk1, C, w + 2, 0);
+
+    const walk2 = [
+      '....RRRRR...',
+      '...RRRRRRR..',
+      '...BBBSSBS..',
+      '..BSBSSSBS..',
+      '..BSBBSSSBBB',
+      '...BSSSBBB..',
+      '....SSSS....',
+      '..BBRBBR....',
+      '.BRRRBRRR...',
+      '.BRRRBBRR...',
+      '.BBBBBB.....',
+      '...BBBBB....',
+      '...BBBB.....',
+      '..BBB.B.....',
+      '..BBB.......',
+      '...BB.......',
+    ];
+    this.drawPixels(ctx, walk2, C, w * 2 + 2, 0);
+
+    const walk3 = [
+      '............',
+      '....RRRRR...',
+      '...RRRRRRR..',
+      '...BBBSSBS..',
+      '..BSBSSSBS..',
+      '..BSBBSSSBBB',
+      '...BSSSBBB..',
+      '..RRRRRS....',
+      '.RRRRRRSSS..',
+      '.RRRRBBBBS..',
+      '.RSSBRBBS...',
+      '..SSBRRB....',
+      '..BBBRBB....',
+      '.BBB..BBB...',
+      '.BBB........',
+      '............',
+    ];
+    this.drawPixels(ctx, walk3, C, w * 3 + 2, 0);
+
+    // Frame 4: Jump
+    const jump = [
+      '.....BBBBB..',
+      '...RRRRRRB..',
+      '..RRRRRRR...',
+      '..BBBSSBS...',
+      '.BSBSSSBS...',
+      '.BSBBSSSBBB.',
+      '..BSSSBBB...',
+      '..RRRRRR....',
+      'RRRRRRBRRR..',
+      'SSRRRBBRRRR.',
+      'SSSRBBGBRR..',
+      '.SSBBBBBB...',
+      '..BBBBBBB...',
+      '..BBB..BBB..',
+      '.BBB........',
+      '.BB.........',
+    ];
+    this.drawPixels(ctx, jump, C, w * 4 + 2, 0);
+
+    // Frame 5: Skid (stand reversed - handled by flipX)
+    this.drawPixels(ctx, stand, C, w * 5 + 2, 0);
+
+    // Frame 6: Dead
+    const dead = [
+      '...RRRRR....',
+      '..RRRRRRR...',
+      '..BBBSSBS...',
+      '.BSBSSSBS...',
+      '.BSBBSSSBBB.',
+      '..BSSSBBB...',
+      '...SSSS.....',
+      'S.RRRRRR.S..',
+      'SSRRRRRRRSS.',
+      'SRRRRBBRRRS.',
+      '.SRRBBBRRS..',
+      '..BBBBBB....',
+      '..BBBBBB....',
+      '.BBBBBBBB...',
+      '.BBB..BBB...',
+      'BBB....BBB..',
+    ];
+    this.drawPixels(ctx, dead, C, w * 6 + 2, 0);
+
+    this.scene.textures.addSpriteSheet('mario-small', canvas, {
+      frameWidth: w,
+      frameHeight: h,
     });
   }
 
-  // ---- BIG MARIO SPRITES ----
-  drawBigMarioStand(ctx, facing = 1) {
-    const grid = [
+  // ---- MARIO BIG (spritesheet: 16x32, multiple frames) ----
+  generateMarioBig() {
+    const w = 16, h = 32, frames = 5; // stand, walk1, walk2, walk3, jump
+    const canvas = document.createElement('canvas');
+    canvas.width = w * frames;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const C = {
+      'R': '#B81C1C', 'B': '#6B3400', 'S': '#F0A060', '.': null,
+    };
+
+    // Big Mario Stand
+    const bigStand = [
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
       '....RRRRR.......',
       '...RRRRRRRRR....',
       '...BBBSSBSB.....',
@@ -270,107 +436,130 @@ class SpriteRenderer {
       '...BBBB.BBBB....',
       '..BBBB..BBBB....',
     ];
-    const colors = {
-      'R': COLORS.MARIO_RED,
-      'B': COLORS.MARIO_BROWN,
-      'S': COLORS.MARIO_SKIN,
-      '.': null,
-    };
-    if (facing === -1) {
-      const flipped = grid.map(row => row.split('').reverse().join(''));
-      this.drawPixelGrid(ctx, flipped.map(r => r.split('')), colors);
-    } else {
-      this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-    }
-  }
+    this.drawPixels(ctx, bigStand, C, 0, 0);
 
-  drawBigMarioWalk(ctx, frame, facing = 1) {
-    // Simplified big mario walk - 3 frames
-    const frames = [
-      [
-        '....RRRRR.......',
-        '...RRRRRRRRR....',
-        '...BBBSSBSB.....',
-        '..BSBSSSBSBB....',
-        '..BSBBBSSSBBB...',
-        '..BBSSSSBBB.....',
-        '....SSSSSS......',
-        '...RRRRRRR......',
-        '..RRRRRRRRRB....',
-        '..RRRRRRBRRBB...',
-        '..RRRBBBBRSBB...',
-        '....BRBBRB......',
-        '...BBBBBBB......',
-        '...BBRRBBRB.....',
-        '..BBBRRBBR......',
-        '..BBR..RRR......',
-        '....R..BBB......',
-        '...BB.BBB.......',
-        '...BBBBBB.......',
-        '....BBB.........',
-      ],
-      [
-        '....RRRRR.......',
-        '...RRRRRRRRR....',
-        '...BBBSSBSB.....',
-        '..BSBSSSBSBB....',
-        '..BSBBBSSSBBB...',
-        '..BBSSSSBBB.....',
-        '....SSSSSS......',
-        '..RRRBRRRR......',
-        '.RRRRBRRRR......',
-        '.RRRRBBRRR......',
-        '.RBBBBBRR.......',
-        '...BBBBBBB......',
-        '...BBBBBR.......',
-        '..BBBRRBBR......',
-        '..BBB.RBBR......',
-        '......RBB.......',
-        '.....BBB........',
-        '.....BB.........',
-        '.....BBB........',
-        '................',
-      ],
-      [
-        '................',
-        '....RRRRR.......',
-        '...RRRRRRRRR....',
-        '...BBBSSBSB.....',
-        '..BSBSSSBSBB....',
-        '..BSBBBSSSBBB...',
-        '..BBSSSSBBB.....',
-        '....RRRRRRS.....',
-        '..RRRRRRRRSSS...',
-        '..RRRRRBBBBSS...',
-        '..RRRSSBRBBS....',
-        '....SSBRRBBB....',
-        '...BBBBRRBBB....',
-        '..BBBR..RBBB....',
-        '..BBB....BBB....',
-        '..BBB...........',
-        '................',
-        '................',
-        '................',
-        '................',
-      ],
+    // Big Mario Walk frames
+    const bigWalk1 = [
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '....RRRRR.......',
+      '...RRRRRRRRR....',
+      '...BBBSSBSB.....',
+      '..BSBSSSBSBB....',
+      '..BSBBBSSSBBB...',
+      '..BBSSSSBBB.....',
+      '....SSSSSS......',
+      '...RRRRRRR......',
+      '..RRRRRRRRRB....',
+      '..RRRRRRBRRBB...',
+      '..RRRBBBBRSBB...',
+      '....BRBBRB......',
+      '...BBBBBBB......',
+      '...BBRRBBRB.....',
+      '..BBBRRBBR......',
+      '..BBR..RRR......',
+      '....R..BBB......',
+      '...BB.BBB.......',
+      '...BBBBBB.......',
+      '....BBB.........',
     ];
-    const grid = frames[frame % 3];
-    const colors = {
-      'R': COLORS.MARIO_RED,
-      'B': COLORS.MARIO_BROWN,
-      'S': COLORS.MARIO_SKIN,
-      '.': null,
-    };
-    if (facing === -1) {
-      const flipped = grid.map(row => row.split('').reverse().join(''));
-      this.drawPixelGrid(ctx, flipped.map(r => r.split('')), colors);
-    } else {
-      this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-    }
-  }
+    this.drawPixels(ctx, bigWalk1, C, w, 0);
 
-  drawBigMarioJump(ctx, facing = 1) {
-    const grid = [
+    const bigWalk2 = [
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '....RRRRR.......',
+      '...RRRRRRRRR....',
+      '...BBBSSBSB.....',
+      '..BSBSSSBSBB....',
+      '..BSBBBSSSBBB...',
+      '..BBSSSSBBB.....',
+      '....SSSSSS......',
+      '..RRRBRRRR......',
+      '.RRRRBRRRR......',
+      '.RRRRBBRRR......',
+      '.RBBBBBRR.......',
+      '...BBBBBBB......',
+      '...BBBBBR.......',
+      '..BBBRRBBR......',
+      '..BBB.RBBR......',
+      '......RBB.......',
+      '.....BBB........',
+      '.....BB.........',
+      '.....BBB........',
+      '................',
+    ];
+    this.drawPixels(ctx, bigWalk2, C, w * 2, 0);
+
+    const bigWalk3 = [
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '....RRRRR.......',
+      '...RRRRRRRRR....',
+      '...BBBSSBSB.....',
+      '..BSBSSSBSBB....',
+      '..BSBBBSSSBBB...',
+      '..BBSSSSBBB.....',
+      '....RRRRRRS.....',
+      '..RRRRRRRRSSS...',
+      '..RRRRRBBBBSS...',
+      '..RRRSSBRBBS....',
+      '....SSBRRBBB....',
+      '...BBBBRRBBB....',
+      '..BBBR..RBBB....',
+      '..BBB....BBB....',
+      '..BBB...........',
+      '................',
+      '................',
+      '................',
+      '................',
+    ];
+    this.drawPixels(ctx, bigWalk3, C, w * 3, 0);
+
+    // Big Mario Jump
+    const bigJump = [
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
+      '................',
       '.....BBBBB......',
       '...RRRRRRRB.....',
       '..RRRRRRRRR.....',
@@ -391,200 +580,31 @@ class SpriteRenderer {
       '.BB.............',
       '................',
       '................',
+      '................',
     ];
-    const colors = {
-      'R': COLORS.MARIO_RED,
-      'B': COLORS.MARIO_BROWN,
-      'S': COLORS.MARIO_SKIN,
-      '.': null,
-    };
-    if (facing === -1) {
-      const flipped = grid.map(row => row.split('').reverse().join(''));
-      this.drawPixelGrid(ctx, flipped.map(r => r.split('')), colors);
-    } else {
-      this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-    }
-  }
+    this.drawPixels(ctx, bigJump, C, w * 4, 0);
 
-  getBigMarioSprite(state, animFrame, facing) {
-    const key = `bigmario_${state}_${animFrame}_${facing}`;
-    return this.getCached(key, 16, 20, (ctx) => {
-      switch (state) {
-        case 'stand':
-          this.drawBigMarioStand(ctx, facing);
-          break;
-        case 'walk':
-          this.drawBigMarioWalk(ctx, animFrame, facing);
-          break;
-        case 'jump':
-          this.drawBigMarioJump(ctx, facing);
-          break;
-        case 'skid':
-          this.drawBigMarioStand(ctx, -facing);
-          break;
-        default:
-          this.drawBigMarioStand(ctx, facing);
-      }
+    this.scene.textures.addSpriteSheet('mario-big', canvas, {
+      frameWidth: w,
+      frameHeight: h,
     });
   }
 
-  // ---- TILE SPRITES ----
+  // ---- GOOMBA (2 walk frames + squished) ----
+  generateGoomba() {
+    const w = 16, h = 16, frames = 3;
+    const canvas = document.createElement('canvas');
+    canvas.width = w * frames;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
 
-  drawGroundTile(ctx) {
-    ctx.fillStyle = COLORS.GROUND_BROWN;
-    ctx.fillRect(0, 0, 16, 16);
-    ctx.fillStyle = COLORS.GROUND_DARK;
-    ctx.fillRect(0, 0, 16, 1);
-    ctx.fillRect(0, 0, 1, 16);
-    ctx.fillStyle = COLORS.GROUND_LIGHT;
-    ctx.fillRect(1, 1, 6, 6);
-    ctx.fillRect(9, 9, 6, 6);
-    ctx.fillStyle = COLORS.GROUND_DARK;
-    ctx.fillRect(1, 7, 7, 1);
-    ctx.fillRect(7, 1, 1, 7);
-    ctx.fillRect(9, 15, 7, 1);
-    ctx.fillRect(15, 9, 1, 7);
-  }
+    const C = {
+      'B': '#C88448', 'D': '#8C5C28', 'L': '#E8C498',
+      'W': '#F8F8F8', 'K': '#000000', '.': null,
+    };
 
-  drawBrickTile(ctx) {
-    ctx.fillStyle = COLORS.BRICK_RED;
-    ctx.fillRect(0, 0, 16, 16);
-    ctx.fillStyle = COLORS.BRICK_LINE;
-    // Horizontal lines
-    ctx.fillRect(0, 3, 16, 1);
-    ctx.fillRect(0, 7, 16, 1);
-    ctx.fillRect(0, 11, 16, 1);
-    ctx.fillRect(0, 15, 16, 1);
-    // Vertical lines (offset per row)
-    ctx.fillRect(7, 0, 1, 4);
-    ctx.fillRect(3, 4, 1, 4);
-    ctx.fillRect(11, 4, 1, 4);
-    ctx.fillRect(7, 8, 1, 4);
-    ctx.fillRect(3, 12, 1, 4);
-    ctx.fillRect(11, 12, 1, 4);
-    // Highlights
-    ctx.fillStyle = COLORS.GROUND_LIGHT;
-    ctx.fillRect(0, 0, 7, 1);
-    ctx.fillRect(0, 0, 1, 3);
-    ctx.fillRect(8, 4, 3, 1);
-    ctx.fillRect(8, 4, 1, 3);
-    ctx.fillRect(0, 8, 7, 1);
-    ctx.fillRect(0, 8, 1, 3);
-    ctx.fillRect(8, 12, 3, 1);
-    ctx.fillRect(8, 12, 1, 3);
-  }
-
-  drawQuestionBlock(ctx, frame = 0) {
-    const isEmpty = frame === -1;
-    
-    if (isEmpty) {
-      ctx.fillStyle = COLORS.GROUND_BROWN;
-      ctx.fillRect(0, 0, 16, 16);
-      ctx.fillStyle = COLORS.GROUND_DARK;
-      ctx.fillRect(0, 15, 16, 1);
-      ctx.fillRect(15, 0, 1, 16);
-      ctx.fillStyle = COLORS.GROUND_LIGHT;
-      ctx.fillRect(0, 0, 16, 1);
-      ctx.fillRect(0, 0, 1, 16);
-      return;
-    }
-    
-    // Animated ? block
-    ctx.fillStyle = COLORS.QUESTION_YELLOW;
-    ctx.fillRect(0, 0, 16, 16);
-    
-    // Border
-    ctx.fillStyle = COLORS.QUESTION_OUTLINE;
-    ctx.fillRect(0, 0, 16, 1);
-    ctx.fillRect(0, 15, 16, 1);
-    ctx.fillRect(0, 0, 1, 16);
-    ctx.fillRect(15, 0, 1, 16);
-    
-    // Shadow edges
-    ctx.fillStyle = COLORS.QUESTION_DARK;
-    ctx.fillRect(1, 14, 14, 1);
-    ctx.fillRect(14, 1, 1, 14);
-    
-    // Highlight
-    ctx.fillStyle = '#F8D878';
-    ctx.fillRect(1, 1, 14, 1);
-    ctx.fillRect(1, 1, 1, 14);
-    
-    // Question mark (animated shimmer based on frame)
-    const shimmer = Math.floor(frame / CONFIG.ANIM.COIN_SPIN) % 4;
-    ctx.fillStyle = COLORS.QUESTION_OUTLINE;
-    
-    if (shimmer < 3) {
-      // Normal ?
-      ctx.fillRect(5, 3, 6, 2);
-      ctx.fillRect(9, 5, 3, 2);
-      ctx.fillRect(7, 7, 3, 2);
-      ctx.fillRect(7, 9, 2, 2);
-      ctx.fillRect(7, 12, 2, 2);
-    } else {
-      // Shimmer frame - slightly shifted
-      ctx.fillRect(6, 3, 5, 2);
-      ctx.fillRect(9, 5, 2, 2);
-      ctx.fillRect(7, 7, 3, 2);
-      ctx.fillRect(7, 9, 2, 2);
-      ctx.fillRect(7, 12, 2, 2);
-    }
-  }
-
-  drawPipe(ctx, part) {
-    switch (part) {
-      case 'tl':
-        ctx.fillStyle = COLORS.PIPE_OUTLINE;
-        ctx.fillRect(0, 0, 16, 16);
-        ctx.fillStyle = COLORS.PIPE_GREEN;
-        ctx.fillRect(1, 0, 14, 16);
-        ctx.fillStyle = COLORS.PIPE_LIGHT;
-        ctx.fillRect(2, 0, 4, 16);
-        ctx.fillStyle = COLORS.PIPE_DARK;
-        ctx.fillRect(12, 0, 3, 16);
-        break;
-      case 'tr':
-        ctx.fillStyle = COLORS.PIPE_OUTLINE;
-        ctx.fillRect(0, 0, 16, 16);
-        ctx.fillStyle = COLORS.PIPE_GREEN;
-        ctx.fillRect(1, 0, 14, 16);
-        ctx.fillStyle = COLORS.PIPE_LIGHT;
-        ctx.fillRect(1, 0, 3, 16);
-        ctx.fillStyle = COLORS.PIPE_DARK;
-        ctx.fillRect(11, 0, 4, 16);
-        // Top lip
-        ctx.fillStyle = COLORS.PIPE_OUTLINE;
-        ctx.fillRect(15, 0, 1, 16);
-        break;
-      case 'bl':
-        ctx.fillStyle = COLORS.PIPE_GREEN;
-        ctx.fillRect(2, 0, 14, 16);
-        ctx.fillStyle = COLORS.PIPE_OUTLINE;
-        ctx.fillRect(2, 0, 1, 16);
-        ctx.fillStyle = COLORS.PIPE_LIGHT;
-        ctx.fillRect(4, 0, 3, 16);
-        ctx.fillStyle = COLORS.PIPE_DARK;
-        ctx.fillRect(13, 0, 2, 16);
-        break;
-      case 'br':
-        ctx.fillStyle = COLORS.PIPE_GREEN;
-        ctx.fillRect(0, 0, 14, 16);
-        ctx.fillStyle = COLORS.PIPE_OUTLINE;
-        ctx.fillRect(13, 0, 1, 16);
-        ctx.fillStyle = COLORS.PIPE_LIGHT;
-        ctx.fillRect(1, 0, 2, 16);
-        ctx.fillStyle = COLORS.PIPE_DARK;
-        ctx.fillRect(10, 0, 3, 16);
-        break;
-    }
-  }
-
-  // ---- ENEMY SPRITES ----
-
-  drawGoomba(ctx, frame = 0) {
-    const walkFrame = Math.floor(frame / CONFIG.ANIM.WALK_SPEED) % 2;
-    
-    const grid = [
+    const goomba1 = [
       '......BBBB......',
       '....BBBBBBBB....',
       '...BBBBBBBBBB...',
@@ -600,80 +620,92 @@ class SpriteRenderer {
       '..BBBBBBBBBBB...',
       '.BBBBBBBBBBBBB..',
       '.BBBBB....BBBBB.',
-      'BBBBB......BBBBB',
+      'DDDDD......DDDDD',
     ];
-    
-    const colors = {
-      'B': COLORS.GOOMBA_BROWN,
-      'W': COLORS.GOOMBA_WHITE,
-      'K': COLORS.GOOMBA_BLACK,
-      'L': COLORS.GOOMBA_LIGHT,
-      '.': null,
-    };
-    
-    this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-    
-    // Animate feet
-    if (walkFrame === 1) {
-      ctx.fillStyle = COLORS.GOOMBA_BROWN;
-      ctx.fillRect(1, 14, 5, 2);
-      ctx.fillRect(10, 14, 5, 2);
-    }
-  }
+    this.drawPixels(ctx, goomba1, C, 0, 0);
 
-  drawGoombaFlat(ctx) {
-    // Squished goomba
-    ctx.fillStyle = COLORS.GOOMBA_BROWN;
-    ctx.fillRect(0, 12, 16, 4);
-    ctx.fillStyle = COLORS.GOOMBA_LIGHT;
-    ctx.fillRect(2, 12, 12, 2);
-    ctx.fillStyle = COLORS.GOOMBA_BLACK;
-    ctx.fillRect(3, 13, 3, 1);
-    ctx.fillRect(10, 13, 3, 1);
-  }
+    // Walk frame 2 (feet swapped)
+    const goomba2 = [
+      '......BBBB......',
+      '....BBBBBBBB....',
+      '...BBBBBBBBBB...',
+      '..BBBBBBBBBBBB..',
+      '..BBBWWBBWWBBB..',
+      '..BBBWWBBWWBBB..',
+      '.BBBBKWBBKWBBBB.',
+      '.BBBBBBBBBBBBB..',
+      '.BBBBBBBBBBBBB..',
+      '..BBBLLLLLLBBB..',
+      '..LLLLLLLLLLLL..',
+      '...LLLLLLLLLL...',
+      '..BBBBBBBBBBB...',
+      '.BBBBBBBBBBBBB..',
+      'DDDDD....DDDDD..',
+      'DDDDD......DDDDD',
+    ];
+    this.drawPixels(ctx, goomba2, C, w, 0);
 
-  getGoombaSrite(frame, squished = false) {
-    const key = squished ? 'goomba_flat' : `goomba_${Math.floor(frame / CONFIG.ANIM.WALK_SPEED) % 2}`;
-    return this.getCached(key, 16, 16, (ctx) => {
-      if (squished) {
-        this.drawGoombaFlat(ctx);
-      } else {
-        this.drawGoomba(ctx, frame);
-      }
+    // Squished
+    ctx.fillStyle = '#C88448';
+    ctx.fillRect(w * 2, 12, 16, 4);
+    ctx.fillStyle = '#E8C498';
+    ctx.fillRect(w * 2 + 2, 12, 12, 2);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(w * 2 + 3, 13, 3, 1);
+    ctx.fillRect(w * 2 + 10, 13, 3, 1);
+
+    this.scene.textures.addSpriteSheet('goomba', canvas, {
+      frameWidth: w,
+      frameHeight: h,
     });
   }
 
-  // ---- ITEMS ----
+  // ---- COIN (4 spin frames) ----
+  generateCoin() {
+    const w = 16, h = 16, frames = 4;
+    const canvas = document.createElement('canvas');
+    canvas.width = w * frames;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
 
-  drawCoin(ctx, frame = 0) {
-    const phase = Math.floor(frame / CONFIG.ANIM.COIN_SPIN) % 4;
     const widths = [8, 6, 2, 6];
-    const w = widths[phase];
-    const x = (16 - w) / 2;
-    
-    ctx.fillStyle = COLORS.COIN_YELLOW;
-    ctx.fillRect(x, 2, w, 12);
-    ctx.fillStyle = COLORS.COIN_DARK;
-    ctx.fillRect(x, 2, w, 1);
-    ctx.fillRect(x, 13, w, 1);
-    ctx.fillRect(x, 2, 1, 12);
-    if (w > 2) {
-      ctx.fillStyle = COLORS.COIN_LIGHT;
-      ctx.fillRect(x + 1, 3, w - 2, 10);
-      ctx.fillStyle = COLORS.COIN_YELLOW;
-      ctx.fillRect(x + 2, 4, w - 3, 8);
+    for (let f = 0; f < frames; f++) {
+      const cw = widths[f];
+      const cx = w * f + (16 - cw) / 2;
+      ctx.fillStyle = '#F8B800';
+      ctx.fillRect(cx, 2, cw, 12);
+      ctx.fillStyle = '#C88400';
+      ctx.fillRect(cx, 2, cw, 1);
+      ctx.fillRect(cx, 13, cw, 1);
+      ctx.fillRect(cx, 2, 1, 12);
+      if (cw > 2) {
+        ctx.fillStyle = '#F8D878';
+        ctx.fillRect(cx + 1, 3, cw - 2, 10);
+        ctx.fillStyle = '#F8B800';
+        ctx.fillRect(cx + 2, 4, Math.max(1, cw - 3), 8);
+      }
     }
-  }
 
-  getCoinSprite(frame) {
-    const key = `coin_${Math.floor(frame / CONFIG.ANIM.COIN_SPIN) % 4}`;
-    return this.getCached(key, 16, 16, (ctx) => {
-      this.drawCoin(ctx, frame);
+    this.scene.textures.addSpriteSheet('coin', canvas, {
+      frameWidth: w,
+      frameHeight: h,
     });
   }
 
-  drawMushroom(ctx) {
-    // Super mushroom
+  // ---- MUSHROOM ----
+  generateMushroom() {
+    const w = 16, h = 16;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const C = {
+      'R': '#B81C1C', 'W': '#F8F8F8', 'S': '#F0A060',
+      'K': '#000000', '.': null,
+    };
     const grid = [
       '....RRRRRR......',
       '..RRRRRRRRRR....',
@@ -686,168 +718,33 @@ class SpriteRenderer {
       '..RRRRRRRRRRRR..',
       '....SSSSSSSS....',
       '...SSSSSSSSSS...',
-      '..SSBBSSSSBBSS..',
-      '..SSBBSSSSBBSS..',
+      '..SSKKSSSSKKSS..',
+      '..SSKKSSSSKKSS..',
       '..SSSSSSSSSSSS..',
       '...SSSSSSSSSS...',
       '....SSSSSSSS....',
     ];
-    const colors = {
-      'R': COLORS.MUSHROOM_RED,
-      'W': COLORS.MUSHROOM_WHITE,
-      'S': COLORS.MUSHROOM_SKIN,
-      'B': COLORS.GOOMBA_BLACK,
-      '.': null,
-    };
-    this.drawPixelGrid(ctx, grid.map(r => r.split('')), colors);
-  }
+    this.drawPixels(ctx, grid, C, 0, 0);
 
-  getMushroomSprite() {
-    return this.getCached('mushroom', 16, 16, (ctx) => {
-      this.drawMushroom(ctx);
-    });
-  }
-
-  // ---- SCENERY ----
-  
-  drawCloud(ctx, width) {
-    // width in tiles (2 or 3)
-    const tw = width * 16;
-    ctx.fillStyle = COLORS.CLOUD_WHITE;
-    // Top bumps
-    ctx.beginPath();
-    ctx.arc(tw * 0.3, 8, 7, 0, Math.PI * 2);
-    ctx.arc(tw * 0.5, 5, 9, 0, Math.PI * 2);
-    ctx.arc(tw * 0.7, 8, 7, 0, Math.PI * 2);
-    ctx.fill();
-    // Base
-    ctx.fillRect(4, 8, tw - 8, 8);
-    // Light outline
-    ctx.fillStyle = COLORS.CLOUD_LIGHT;
-    ctx.fillRect(4, 14, tw - 8, 2);
-  }
-
-  drawHill(ctx, width) {
-    const tw = width * 16;
-    const h = width * 12;
-    ctx.fillStyle = COLORS.HILL_GREEN;
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    ctx.lineTo(tw / 2, 0);
-    ctx.lineTo(tw, h);
-    ctx.fill();
-    // Spots
-    ctx.fillStyle = COLORS.HILL_LIGHT;
-    ctx.fillRect(tw / 2 - 2, h * 0.3, 4, 4);
-    ctx.fillRect(tw / 2 - 8, h * 0.6, 3, 3);
-    ctx.fillRect(tw / 2 + 5, h * 0.5, 3, 3);
-  }
-
-  drawBush(ctx, width) {
-    const tw = width * 16;
-    ctx.fillStyle = COLORS.BUSH_GREEN;
-    ctx.beginPath();
-    if (width >= 3) {
-      ctx.arc(8, 10, 8, 0, Math.PI * 2);
-      ctx.arc(tw / 2, 8, 10, 0, Math.PI * 2);
-      ctx.arc(tw - 8, 10, 8, 0, Math.PI * 2);
-    } else {
-      ctx.arc(tw / 2, 8, tw / 2 - 2, 0, Math.PI * 2);
-    }
-    ctx.fill();
-    ctx.fillRect(2, 10, tw - 4, 6);
-    
-    ctx.fillStyle = COLORS.BUSH_LIGHT;
-    ctx.fillRect(tw / 2 - 2, 4, 4, 3);
+    this.scene.textures.addCanvas('mushroom', canvas);
   }
 
   // ---- FLAG ----
-  drawFlagPole(ctx) {
-    ctx.fillStyle = COLORS.FLAG_POLE;
-    ctx.fillRect(7, 0, 2, 16);
-  }
+  generateFlag() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 16;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
 
-  drawFlagTop(ctx) {
-    ctx.fillStyle = COLORS.FLAG_POLE;
-    ctx.fillRect(7, 2, 2, 14);
-    // Ball on top
-    ctx.fillStyle = COLORS.FLAG_BALL;
-    ctx.fillRect(6, 0, 4, 4);
-  }
-
-  drawFlag(ctx) {
-    ctx.fillStyle = COLORS.FLAG_GREEN;
-    ctx.fillRect(0, 0, 12, 10);
-    // Triangle cut
-    ctx.fillStyle = COLORS.FLAG_GREEN;
+    ctx.fillStyle = '#00A800';
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(12, 0);
-    ctx.lineTo(12, 10);
-    ctx.lineTo(0, 5);
+    ctx.moveTo(2, 1);
+    ctx.lineTo(14, 1);
+    ctx.lineTo(14, 10);
+    ctx.lineTo(2, 6);
     ctx.fill();
-  }
 
-  // ---- CASTLE ----
-  drawCastleBlock(ctx) {
-    ctx.fillStyle = COLORS.CASTLE_GRAY;
-    ctx.fillRect(0, 0, 16, 16);
-    ctx.fillStyle = COLORS.CASTLE_DARK;
-    ctx.fillRect(0, 0, 16, 1);
-    ctx.fillRect(0, 0, 1, 16);
-    ctx.fillRect(7, 0, 1, 16);
-    ctx.fillRect(0, 7, 16, 1);
-    ctx.fillStyle = COLORS.CASTLE_LIGHT;
-    ctx.fillRect(1, 1, 6, 6);
-  }
-
-  // ---- GET TILE SPRITE ----
-  getTileSprite(tileType, frame = 0) {
-    const key = `tile_${tileType}_${tileType === TILES.QUESTION ? Math.floor(frame / CONFIG.ANIM.COIN_SPIN) % 4 : 0}`;
-    return this.getCached(key, 16, 16, (ctx) => {
-      switch (tileType) {
-        case TILES.GROUND:
-          this.drawGroundTile(ctx);
-          break;
-        case TILES.BRICK:
-          this.drawBrickTile(ctx);
-          break;
-        case TILES.QUESTION:
-          this.drawQuestionBlock(ctx, frame);
-          break;
-        case TILES.QUESTION_EMPTY:
-          this.drawQuestionBlock(ctx, -1);
-          break;
-        case TILES.PIPE_TL:
-          this.drawPipe(ctx, 'tl');
-          break;
-        case TILES.PIPE_TR:
-          this.drawPipe(ctx, 'tr');
-          break;
-        case TILES.PIPE_BL:
-          this.drawPipe(ctx, 'bl');
-          break;
-        case TILES.PIPE_BR:
-          this.drawPipe(ctx, 'br');
-          break;
-        case TILES.BLOCK:
-          this.drawGroundTile(ctx);
-          break;
-        case TILES.FLAG_POLE:
-          this.drawFlagPole(ctx);
-          break;
-        case TILES.FLAG_TOP:
-          this.drawFlagTop(ctx);
-          break;
-        case TILES.CASTLE_BLOCK:
-        case TILES.CASTLE_TOP:
-        case TILES.CASTLE_DOOR:
-        case TILES.CASTLE_WINDOW:
-          this.drawCastleBlock(ctx);
-          break;
-        default:
-          break;
-      }
-    });
+    this.scene.textures.addCanvas('flag', canvas);
   }
 }

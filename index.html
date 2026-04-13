@@ -4,84 +4,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Super Mario Demo</title>
-  <link rel="stylesheet" href="css/style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+  </style>
 </head>
 <body>
-  <div id="loading">Loading...</div>
-  
-  <div id="gameContainer">
-    <canvas id="gameCanvas"></canvas>
-  </div>
+  <!-- Phaser 3 CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.80.1/phaser.min.js"></script>
 
-  <!-- Mobile touch controls -->
-  <div id="mobileControls">
-    <button class="control-btn" id="btn-left">◀</button>
-    <button class="control-btn" id="btn-right">▶</button>
-    <button class="control-btn" id="btn-jump">JUMP</button>
-    <button class="control-btn" id="btn-run">RUN</button>
-  </div>
-
-  <!-- Game scripts (order matters) -->
+  <!-- Game code -->
   <script src="js/config.js"></script>
   <script src="js/sprites.js"></script>
-  <script src="js/input.js"></script>
-  <script src="js/physics.js"></script>
-  <script src="js/entities.js"></script>
-  <script src="js/level.js"></script>
-  <script src="js/camera.js"></script>
-  <script src="js/ui.js"></script>
   <script src="js/sound.js"></script>
+  <script src="js/level.js"></script>
   <script src="js/game.js"></script>
 
   <script>
-    // Mobile controls support
-    (function() {
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      
-      if (isTouchDevice) {
-        const buttons = {
-          'btn-left': 'ArrowLeft',
-          'btn-right': 'ArrowRight', 
-          'btn-jump': 'Space',
-          'btn-run': 'ShiftLeft',
-        };
-        
-        for (const [id, key] of Object.entries(buttons)) {
-          const btn = document.getElementById(id);
-          if (!btn) continue;
-          
-          btn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            window.dispatchEvent(new KeyboardEvent('keydown', { code: key }));
-          });
-          
-          btn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            window.dispatchEvent(new KeyboardEvent('keyup', { code: key }));
-          });
-          
-          btn.addEventListener('touchcancel', (e) => {
-            window.dispatchEvent(new KeyboardEvent('keyup', { code: key }));
-          });
-        }
-        
-        // Tap canvas to start
-        const canvas = document.getElementById('gameCanvas');
-        canvas.addEventListener('touchstart', () => {
-          window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter' }));
-          setTimeout(() => {
-            window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Enter' }));
-          }, 100);
-        }, { once: true });
-      }
-      
-      // Hide loading
-      window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-          document.getElementById('loading').classList.add('hidden');
-        }, 300);
-      });
-    })();
+    const config = {
+      type: Phaser.AUTO,
+      width: GAME_CONFIG.WIDTH,
+      height: GAME_CONFIG.HEIGHT,
+      backgroundColor: GAME_CONFIG.COLORS.SKY_CSS,
+      pixelArt: true,
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { y: GAME_CONFIG.PHYSICS.GRAVITY * GAME_CONFIG.SCALE },
+          debug: false,
+        },
+      },
+      scene: [GameScene],
+      scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+      },
+    };
+
+    const game = new Phaser.Game(config);
   </script>
 </body>
 </html>
